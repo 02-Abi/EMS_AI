@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+
+{% block title %}Audit Logs{% endblock %}
+
+{% block content %}
+<div class="audit-list">
+    <div class="page-header">
+        <h1>Audit Logs</h1>
+    </div>
+    
+    <!-- Search Form -->
+    <div class="filters-section">
+        <form method="get" class="filter-form">
+            <div class="filter-controls">
+                <div class="form-group">
+                    <label for="user">User:</label>
+                    <input type="text" name="user" id="user" value="{{ search_form.user.value|default:'' }}" placeholder="Username...">
+                </div>
+                
+                <div class="form-group">
+                    <label for="action_type">Action:</label>
+                    <select name="action_type" id="action_type">
+                        {% for value, label in action_choices %}
+                        <option value="{{ value }}" {% if search_form.action_type.value == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="target_model">Model:</label>
+                    <input type="text" name="target_model" id="target_model" value="{{ search_form.target_model.value|default:'' }}" placeholder="Model name...">
+                </div>
+                
+                <div class="form-group">
+                    <label for="date_from">From:</label>
+                    <input type="date" name="date_from" id="date_from" value="{{ search_form.date_from.value|default:'' }}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="date_to">To:</label>
+                    <input type="date" name="date_to" id="date_to" value="{{ search_form.date_to.value|default:'' }}">
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Search</button>
+                <a href="{% url 'audit:list' %}" class="btn btn-clear">Clear</a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Audit Logs Table -->
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>User</th>
+                    <th>Action</th>
+                    <th>Model</th>
+                    <th>Record ID</th>
+                    <th>IP Address</th>
+                    <th>Details</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in page_obj %}
+                <tr>
+                    <td>{{ log.timestamp|date:"Y-m-d H:i:s" }}</td>
+                    <td>
+                        {% if log.user %}
+                        <a href="{% url 'employees:detail' log.user.pk %}">{{ log.user.get_full_name|default:log.user.username }}</a>
+                        {% else %}
+                        <em>System/Deleted</em>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge action-{{ log.action_type|lower }}">
+                            {{ log.get_action_type_display }}
+                        </span>
+                    </td>
+                    <td>{{ log.target_model }}</td>
+                    <td>{{ log.target_id }}</td>
+                    <td>{{ log.ip_address|default:"-" }}</td>
+                    <td class="details-cell">{{ log.details|truncatechars:50 }}</td>
+                    <td>
+                        <a href="{% url 'audit:detail' log.pk %}" class="btn-icon" title="View Details">🔍</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center">No audit logs found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+        <a href="?page=1{% if request.GET.user %}&user={{ request.GET.user }}{% endif %}{% if request.GET.action_type %}&action_type={{ request.GET.action_type }}{% endif %}{% if request.GET.target_model %}&target_model={{ request.GET.target_model }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}" class="page-link">&laquo; First</a>
+        <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.user %}&user={{ request.GET.user }}{% endif %}{% if request.GET.action_type %}&action_type={{ request.GET.action_type }}{% endif %}{% if request.GET.target_model %}&target_model={{ request.GET.target_model }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}" class="page-link">Previous</a>
+        {% endif %}
+        
+        <span class="current-page">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </span>
+        
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if request.GET.user %}&user={{ request.GET.user }}{% endif %}{% if request.GET.action_type %}&action_type={{ request.GET.action_type }}{% endif %}{% if request.GET.target_model %}&target_model={{ request.GET.target_model }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}" class="page-link">Next</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.user %}&user={{ request.GET.user }}{% endif %}{% if request.GET.action_type %}&action_type={{ request.GET.action_type }}{% endif %}{% if request.GET.target_model %}&target_model={{ request.GET.target_model }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}" class="page-link">Last &raquo;</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.badge.action-create { background-color: #27ae60; color: white; }
+.badge.action-update { background-color: #f39c12; color: white; }
+.badge.action-delete { background-color: #e74c3c; color: white; }
+.badge.action-login { background-color: #3498db; color: white; }
+.badge.action-logout { background-color: #95a5a6; color: white; }
+.badge.action-view { background-color: #9b59b6; color: white; }
+
+.details-cell {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+</style>
+{% endblock %}

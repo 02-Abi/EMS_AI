@@ -1,0 +1,913 @@
+{% extends 'base.html' %}
+{% load ml_tags %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>
+            <span class="header-icon">📊</span>
+            Dashboard
+        </h1>
+        <p class="welcome-message">Welcome back, {{ user.get_full_name|default:user.username }}!</p>
+    </div>
+    
+    <!-- Stats Cards - Light Colors -->
+    <div class="stats-grid">
+        <div class="stat-card total">
+            <div class="stat-icon">👥</div>
+            <div class="stat-content">
+                <h3>Total Employees</h3>
+                <p class="stat-number">{{ total_employees }}</p>
+                <span class="stat-trend">All employees</span>
+            </div>
+        </div>
+        
+        <div class="stat-card active">
+            <div class="stat-icon">✅</div>
+            <div class="stat-content">
+                <h3>Active</h3>
+                <p class="stat-number">{{ active_employees }}</p>
+                <span class="stat-trend">{{ active_percentage|default:"0" }}% of total</span>
+            </div>
+        </div>
+        
+        <div class="stat-card inactive">
+            <div class="stat-icon">⏸️</div>
+            <div class="stat-content">
+                <h3>Inactive</h3>
+                <p class="stat-number">{{ inactive_employees|default:"0" }}</p>
+                <span class="stat-trend">{{ inactive_percentage|default:"0" }}% of total</span>
+            </div>
+        </div>
+        
+        <div class="stat-card terminated">
+            <div class="stat-icon">🚫</div>
+            <div class="stat-content">
+                <h3>Terminated</h3>
+                <p class="stat-number">{{ terminated_employees }}</p>
+                <span class="stat-trend">{{ terminated_percentage|default:"0" }}% of total</span>
+            </div>
+        </div>
+        
+        <div class="stat-card departments">
+            <div class="stat-icon">🏢</div>
+            <div class="stat-content">
+                <h3>Departments</h3>
+                <p class="stat-number">{{ department_count }}</p>
+                <span class="stat-trend">Active departments</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ===== ML INSIGHTS WIDGETS ===== -->
+    <div class="ml-widgets">
+        <div class="widget-card">
+            <div class="widget-icon">🔮</div>
+            <div class="widget-content">
+                <h3>Predictions Ready</h3>
+                <p class="widget-number">{% total_predictions %}</p>
+                <span>employees with forecasts</span>
+            </div>
+        </div>
+        <div class="widget-card warning">
+            <div class="widget-icon">⚠️</div>
+            <div class="widget-content">
+                <h3>High Risk</h3>
+                <p class="widget-number">{% high_risk_count %}</p>
+                <span>may need attention</span>
+            </div>
+        </div>
+        <div class="widget-card alert">
+            <div class="widget-icon">🚨</div>
+            <div class="widget-content">
+                <h3>Anomalies</h3>
+                <p class="widget-number">{% anomaly_count %}</p>
+                <span>unusual patterns detected</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Charts Row -->
+    <div class="charts-row">
+        <div class="chart-container">
+            <div class="chart-header">
+                <h3>
+                    <span class="chart-icon">🥧</span>
+                    Department Distribution
+                </h3>
+                <span class="chart-note">Employee count by department</span>
+            </div>
+            <div class="chart-wrapper">
+                <canvas id="deptChart"></canvas>
+            </div>
+            {% if not department_labels %}
+            <div class="chart-placeholder">
+                <p>No department data available</p>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="chart-container">
+            <div class="chart-header">
+                <h3>
+                    <span class="chart-icon">📈</span>
+                    Monthly Performance Trend
+                </h3>
+                <span class="chart-note">Average scores over time</span>
+            </div>
+            <div class="chart-wrapper">
+                <canvas id="performanceChart"></canvas>
+            </div>
+            {% if not performance_labels %}
+            <div class="chart-placeholder">
+                <p>No performance data available</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Leaderboard Section -->
+    <div class="leaderboard-section">
+        <div class="leaderboard-header">
+            <h3>
+                <span class="leaderboard-icon">🏆</span>
+                Top 5 Performers
+            </h3>
+            <a href="{% url 'performance:leaderboard' %}" class="view-all-link">
+                View Full Leaderboard <span class="btn-icon">→</span>
+            </a>
+        </div>
+        
+        <div class="leaderboard-table-wrapper">
+            <table class="leaderboard-table">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Employee</th>
+                        <th>Department</th>
+                        <th>Score</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for performer in top_performers %}
+                    <tr class="rank-{{ forloop.counter }}">
+                        <td class="rank-cell">
+                            {% if forloop.counter == 1 %}
+                                <span class="rank-badge gold">🥇</span>
+                            {% elif forloop.counter == 2 %}
+                                <span class="rank-badge silver">🥈</span>
+                            {% elif forloop.counter == 3 %}
+                                <span class="rank-badge bronze">🥉</span>
+                            {% else %}
+                                <span class="rank-badge">{{ forloop.counter }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="employee-cell">
+                            <a href="{% url 'employees:detail' performer.employee.pk %}" class="employee-link">
+                                {{ performer.employee.get_full_name|default:performer.employee.username }}
+                            </a>
+                            <br>
+                            <small class="employee-id">{{ performer.employee.employee_id }}</small>
+                        </td>
+                        <td>
+                            {% if performer.employee.department %}
+                                <span class="dept-badge">{{ performer.employee.department }}</span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="score-cell">
+                            <span class="score-badge 
+                                {% if performer.calculated_score >= 80 %}score-excellent
+                                {% elif performer.calculated_score >= 60 %}score-good
+                                {% else %}score-needs-improvement{% endif %}">
+                                {{ performer.calculated_score|floatformat:1 }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="status-badge status-{{ performer.employee.employment_status|lower }}">
+                                {{ performer.employee.get_employment_status_display }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="empty-leaderboard">
+                            <div class="empty-state">
+                                <span class="empty-icon">📭</span>
+                                <p>No performance data available</p>
+                                {% if user.role == 'HR' or user.role == 'SUPERADMIN' %}
+                                <a href="{% url 'performance:create' %}" class="btn btn-primary btn-small">
+                                    ➕ Add Performance Record
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Quick Actions (for HR/Admin) -->
+    {% if user.role == 'HR' or user.role == 'SUPERADMIN' %}
+    <div class="quick-actions">
+        <h3>Quick Actions</h3>
+        <div class="action-buttons">
+            <a href="{% url 'employees:create' %}" class="action-btn">
+                <span class="action-icon">➕</span>
+                Add Employee
+            </a>
+            <a href="{% url 'performance:create' %}" class="action-btn">
+                <span class="action-icon">📊</span>
+                Add Performance
+            </a>
+            <a href="{% url 'performance:department_avg' %}" class="action-btn">
+                <span class="action-icon">📈</span>
+                Department Averages
+            </a>
+            {% if user.role == 'SUPERADMIN' %}
+            <a href="{% url 'audit:list' %}" class="action-btn">
+                <span class="action-icon">📋</span>
+                Audit Logs
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+/* Modern Dashboard Styles - LIGHT COLOR SCHEME */
+:root {
+    --total-bg: #e8f0fe;
+    --total-text: #1967d2;
+    --active-bg: #e6f4ea;
+    --active-text: #137333;
+    --inactive-bg: #fef7e0;
+    --inactive-text: #b45f06;
+    --terminated-bg: #fce8e6;
+    --terminated-text: #c5221f;
+    --dept-bg: #f3e8fd;
+    --dept-text: #8430ce;
+    --gold: #f1c40f;
+    --silver: #bdc3c7;
+    --bronze: #e67e22;
+}
+
+.dashboard {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Page Header */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.page-header h1 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    color: #2c3e50;
+    font-size: 2em;
+}
+
+.header-icon {
+    font-size: 1.5em;
+}
+
+.welcome-message {
+    color: #7f8c8d;
+    font-size: 1.1em;
+    margin: 0;
+}
+
+/* Stats Grid - LIGHT COLORS */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px;
+    border-radius: 12px;
+    transition: transform 0.3s, box-shadow 0.3s;
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.stat-card.total {
+    background: var(--total-bg);
+    color: var(--total-text);
+}
+
+.stat-card.active {
+    background: var(--active-bg);
+    color: var(--active-text);
+}
+
+.stat-card.inactive {
+    background: var(--inactive-bg);
+    color: var(--inactive-text);
+}
+
+.stat-card.terminated {
+    background: var(--terminated-bg);
+    color: var(--terminated-text);
+}
+
+.stat-card.departments {
+    background: var(--dept-bg);
+    color: var(--dept-text);
+}
+
+.stat-icon {
+    font-size: 2.5em;
+    opacity: 0.8;
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-card h3 {
+    margin: 0 0 5px 0;
+    font-size: 0.9em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.8;
+}
+
+.stat-number {
+    margin: 0 0 3px 0;
+    font-size: 2.2em;
+    font-weight: bold;
+}
+
+.stat-trend {
+    font-size: 0.8em;
+    opacity: 0.7;
+}
+
+/* ML Widgets */
+.ml-widgets {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin: 30px 0;
+}
+
+.widget-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-left: 4px solid #3498db;
+}
+.widget-card.warning { border-left-color: #f39c12; }
+.widget-card.alert { border-left-color: #e74c3c; }
+.widget-icon {
+    font-size: 2.5em;
+}
+.widget-content h3 {
+    margin: 0;
+    font-size: 0.9em;
+    color: #7f8c8d;
+    text-transform: uppercase;
+}
+.widget-number {
+    font-size: 2em;
+    font-weight: bold;
+    margin: 5px 0;
+}
+
+/* Charts Row */
+.charts-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.chart-container {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    border: 1px solid #ecf0f1;
+}
+
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.chart-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    color: #2c3e50;
+    font-size: 1.1em;
+}
+
+.chart-icon {
+    font-size: 1.2em;
+}
+
+.chart-note {
+    color: #7f8c8d;
+    font-size: 0.85em;
+}
+
+.chart-wrapper {
+    position: relative;
+    height: 300px;
+}
+
+.chart-placeholder {
+    text-align: center;
+    padding: 50px;
+    color: #95a5a6;
+    font-style: italic;
+}
+
+/* Leaderboard Section */
+.leaderboard-section {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    border: 1px solid #ecf0f1;
+    margin-bottom: 30px;
+}
+
+.leaderboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.leaderboard-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    color: #2c3e50;
+    font-size: 1.2em;
+}
+
+.leaderboard-icon {
+    font-size: 1.3em;
+}
+
+.view-all-link {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    background: #f8f9fa;
+    color: #2c3e50;
+    text-decoration: none;
+    border-radius: 20px;
+    font-size: 0.9em;
+    transition: all 0.3s;
+}
+
+.view-all-link:hover {
+    background: #3498db;
+    color: white;
+}
+
+.leaderboard-table-wrapper {
+    overflow-x: auto;
+}
+
+.leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.leaderboard-table th {
+    background: #f8f9fa;
+    color: #2c3e50;
+    font-weight: 600;
+    padding: 12px;
+    text-align: left;
+    font-size: 0.9em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #ecf0f1;
+}
+
+.leaderboard-table td {
+    padding: 15px 12px;
+    border-bottom: 1px solid #ecf0f1;
+}
+
+.leaderboard-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+/* Rank styling */
+.rank-cell {
+    width: 60px;
+}
+
+.rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    font-weight: bold;
+}
+
+.rank-badge.gold {
+    background: var(--gold);
+    color: #2c3e50;
+}
+
+.rank-badge.silver {
+    background: var(--silver);
+    color: #2c3e50;
+}
+
+.rank-badge.bronze {
+    background: var(--bronze);
+    color: white;
+}
+
+/* Employee cell */
+.employee-cell {
+    min-width: 150px;
+}
+
+.employee-link {
+    color: #3498db;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.employee-link:hover {
+    text-decoration: underline;
+}
+
+.employee-id {
+    color: #7f8c8d;
+    font-size: 0.8em;
+}
+
+/* Department badge */
+.dept-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    background: #ecf0f1;
+    border-radius: 12px;
+    font-size: 0.85em;
+    color: #2c3e50;
+}
+
+/* Score badge - LIGHT VERSION */
+.score-cell {
+    width: 80px;
+}
+
+.score-badge {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-weight: bold;
+    text-align: center;
+    min-width: 50px;
+}
+
+.score-excellent {
+    background: #e6f4ea;
+    color: #137333;
+    border: 1px solid #137333;
+}
+
+.score-good {
+    background: #fef7e0;
+    color: #b45f06;
+    border: 1px solid #b45f06;
+}
+
+.score-needs-improvement {
+    background: #fce8e6;
+    color: #c5221f;
+    border: 1px solid #c5221f;
+}
+
+/* Status badge - LIGHT VERSION */
+.status-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: 500;
+}
+
+.status-active {
+    background: #e6f4ea;
+    color: #137333;
+    border: 1px solid #137333;
+}
+
+.status-inactive {
+    background: #fef7e0;
+    color: #b45f06;
+    border: 1px solid #b45f06;
+}
+
+.status-terminated {
+    background: #fce8e6;
+    color: #c5221f;
+    border: 1px solid #c5221f;
+}
+
+/* Empty state */
+.empty-leaderboard {
+    padding: 40px !important;
+}
+
+.empty-state {
+    text-align: center;
+    color: #7f8c8d;
+}
+
+.empty-icon {
+    font-size: 3em;
+    display: block;
+    margin-bottom: 10px;
+    opacity: 0.5;
+}
+
+/* Quick Actions */
+.quick-actions {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    border: 1px solid #ecf0f1;
+}
+
+.quick-actions h3 {
+    margin: 0 0 15px 0;
+    color: #2c3e50;
+    font-size: 1.1em;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: #f8f9fa;
+    color: #2c3e50;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.3s;
+    border: 1px solid #ecf0f1;
+}
+
+.action-btn:hover {
+    background: #3498db;
+    color: white;
+    transform: translateY(-2px);
+    border-color: #3498db;
+}
+
+.action-icon {
+    font-size: 1.2em;
+}
+
+/* Button styles */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: all 0.3s;
+}
+
+.btn-primary {
+    background: #3498db;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #2980b9;
+}
+
+.btn-small {
+    padding: 5px 12px;
+    font-size: 0.9em;
+}
+
+/* Text utilities */
+.text-muted {
+    color: #95a5a6;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .charts-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .leaderboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .action-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Department Distribution Chart
+    {% if department_labels %}
+    const deptCtx = document.getElementById('deptChart').getContext('2d');
+    new Chart(deptCtx, {
+        type: 'pie',
+        data: {
+            labels: {{ department_labels|safe }},
+            datasets: [{
+                data: {{ department_counts|safe }},
+                backgroundColor: [
+                    '#e8f0fe', '#e6f4ea', '#fef7e0', '#fce8e6', '#f3e8fd',
+                    '#e8f0fe', '#e6f4ea', '#fef7e0', '#fce8e6', '#f3e8fd'
+                ],
+                borderColor: '#ffffff',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        font: {
+                            size: 12,
+                            family: "'Segoe UI', sans-serif"
+                        },
+                        color: '#2c3e50'
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.raw || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return `${label}: ${value} employees (${percentage}%)`;
+                        }
+                    },
+                    backgroundColor: 'white',
+                    titleColor: '#2c3e50',
+                    bodyColor: '#2c3e50',
+                    borderColor: '#ecf0f1',
+                    borderWidth: 1
+                }
+            }
+        }
+    });
+    {% endif %}
+    
+    // Performance Trend Chart
+    {% if performance_labels %}
+    const perfCtx = document.getElementById('performanceChart').getContext('2d');
+    new Chart(perfCtx, {
+        type: 'line',
+        data: {
+            labels: {{ performance_labels|safe }},
+            datasets: [{
+                label: 'Average Performance Score',
+                data: {{ performance_data|safe }},
+                borderColor: '#3498db',
+                backgroundColor: 'rgba(52, 152, 219, 0.05)',
+                borderWidth: 2,
+                tension: 0.3,
+                fill: true,
+                pointBackgroundColor: '#3498db',
+                pointBorderColor: 'white',
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    grid: {
+                        color: 'rgba(0,0,0,0.05)'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Score',
+                        color: '#7f8c8d'
+                    },
+                    ticks: {
+                        color: '#7f8c8d'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: '#7f8c8d'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'white',
+                    titleColor: '#2c3e50',
+                    bodyColor: '#2c3e50',
+                    borderColor: '#ecf0f1',
+                    borderWidth: 1,
+                    callbacks: {
+                        label: function(context) {
+                            return `Average Score: ${context.raw.toFixed(1)}`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+});
+</script>
+{% endblock %}

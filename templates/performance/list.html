@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+
+{% block title %}Performance Records{% endblock %}
+
+{% block content %}
+<div class="performance-list">
+    <div class="page-header">
+        <h1>Performance Records</h1>
+        {% if can_add %}
+        <a href="{% url 'performance:create' %}" class="btn btn-primary">➕ Add Record</a>
+        {% endif %}
+    </div>
+    
+    <!-- Search and Filter Form -->
+    <div class="filters-section">
+        <form method="get" class="filter-form">
+            <div class="search-box">
+                <input type="text" 
+                       name="employee" 
+                       placeholder="Search employee..." 
+                       value="{{ search_form.employee.value|default:'' }}">
+                <button type="submit" class="btn btn-search">🔍</button>
+            </div>
+            
+            <div class="filter-controls">
+                <select name="year">
+                    {% for value, label in search_form.fields.year.choices %}
+                    <option value="{{ value }}" 
+                            {% if search_form.year.value == value|stringformat:"s" %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+                
+                <select name="month">
+                    {% for value, label in search_form.fields.month.choices %}
+                    <option value="{{ value }}" 
+                            {% if search_form.month.value == value|stringformat:"s" %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+                
+                <button type="submit" class="btn btn-filter">Apply Filters</button>
+                <a href="{% url 'performance:list' %}" class="btn btn-clear">Clear</a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Performance Table -->
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Employee</th>
+                    <th>Period</th>
+                    <th>Rating</th>
+                    <th>Goals</th>
+                    <th>Attendance</th>
+                    <th>Score</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for perf in page_obj %}
+                <tr>
+                    <td>
+                        <div class="employee-info">
+                            <span class="employee-name">{{ perf.employee.get_full_name|default:perf.employee.username }}</span>
+                            <br>
+                            <small class="employee-id">{{ perf.employee.employee_id }}</small>
+                            {% if perf.employee.department %}
+                            <br>
+                            <small class="employee-dept">{{ perf.employee.department }}</small>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>{{ perf.month }}/{{ perf.year }}</td>
+                    <td>{{ perf.rating }}/10</td>
+                    <td>{{ perf.goals_completed }}</td>
+                    <td>{{ perf.attendance_percentage }}%</td>
+                    <td><strong>{{ perf.calculated_score|floatformat:1 }}</strong></td>
+                    <td class="actions">
+                        <a href="{% url 'performance:detail' perf.pk %}" 
+                           class="btn-icon" 
+                           title="View">👁️</a>
+                        
+                        {% if user.role == 'HR' or user.role == 'SUPERADMIN' or user.role == 'MANAGER' %}
+                        <a href="{% url 'performance:update' perf.pk %}" 
+                           class="btn-icon" 
+                           title="Edit">✏️</a>
+                        {% endif %}
+                        
+                        {% if user.role == 'HR' or user.role == 'SUPERADMIN' %}
+                        <a href="{% url 'performance:delete' perf.pk %}" 
+                           class="btn-icon" 
+                           onclick="return confirm('Are you sure you want to delete this record?')" 
+                           title="Delete">🗑️</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center">No performance records found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+        <a href="?page=1
+                {% if request.GET.employee %}&employee={{ request.GET.employee }}{% endif %}
+                {% if request.GET.year %}&year={{ request.GET.year }}{% endif %}
+                {% if request.GET.month %}&month={{ request.GET.month }}{% endif %}" 
+           class="page-link">&laquo; First</a>
+        
+        <a href="?page={{ page_obj.previous_page_number }}
+                {% if request.GET.employee %}&employee={{ request.GET.employee }}{% endif %}
+                {% if request.GET.year %}&year={{ request.GET.year }}{% endif %}
+                {% if request.GET.month %}&month={{ request.GET.month }}{% endif %}" 
+           class="page-link">Previous</a>
+        {% endif %}
+        
+        <span class="current-page">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </span>
+        
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}
+                {% if request.GET.employee %}&employee={{ request.GET.employee }}{% endif %}
+                {% if request.GET.year %}&year={{ request.GET.year }}{% endif %}
+                {% if request.GET.month %}&month={{ request.GET.month }}{% endif %}" 
+           class="page-link">Next</a>
+        
+        <a href="?page={{ page_obj.paginator.num_pages }}
+                {% if request.GET.employee %}&employee={{ request.GET.employee }}{% endif %}
+                {% if request.GET.year %}&year={{ request.GET.year }}{% endif %}
+                {% if request.GET.month %}&month={{ request.GET.month }}{% endif %}" 
+           class="page-link">Last &raquo;</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.employee-info {
+    line-height: 1.4;
+}
+.employee-name {
+    font-weight: 600;
+    color: #2c3e50;
+}
+.employee-id {
+    color: #7f8c8d;
+    font-size: 0.85em;
+}
+.employee-dept {
+    color: #3498db;
+    font-size: 0.85em;
+}
+.actions {
+    white-space: nowrap;
+}
+.btn-icon {
+    display: inline-block;
+    padding: 5px 8px;
+    margin: 0 2px;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background 0.3s;
+}
+.btn-icon:hover {
+    background: #ecf0f1;
+}
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-top: 20px;
+    padding: 20px;
+}
+.page-link {
+    padding: 8px 12px;
+    background: white;
+    border: 1px solid #bdc3c7;
+    border-radius: 4px;
+    text-decoration: none;
+    color: #2c3e50;
+}
+.page-link:hover {
+    background: #3498db;
+    color: white;
+}
+.current-page {
+    padding: 8px 12px;
+    background: #2c3e50;
+    color: white;
+    border-radius: 4px;
+}
+</style>
+{% endblock %}

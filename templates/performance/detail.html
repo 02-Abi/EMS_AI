@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block title %}Performance Details{% endblock %}
+
+{% block content %}
+<div class="detail-container">
+    <div class="detail-header">
+        <h1>Performance Record Details</h1>
+        <div class="header-actions">
+            {% if user.role == 'HR' or user.role == 'SUPERADMIN' or user.role == 'MANAGER' %}
+            <a href="{% url 'performance:update' performance.pk %}" class="btn btn-primary">✏️ Edit</a>
+            {% endif %}
+            {% if user.role == 'HR' or user.role == 'SUPERADMIN' %}
+            <a href="{% url 'performance:delete' performance.pk %}" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this record?')">🗑️ Delete</a>
+            {% endif %}
+            <a href="{% url 'performance:list' %}" class="btn btn-cancel">← Back to List</a>
+        </div>
+    </div>
+    
+    <div class="detail-card">
+        <div class="detail-section">
+            <h3>Employee Information</h3>
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span class="detail-label">Employee:</span>
+                    <span class="detail-value">
+                        <a href="{% url 'employees:detail' performance.employee.pk %}">
+                            {{ performance.employee.get_full_name }}
+                        </a>
+                    </span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Employee ID:</span>
+                    <span class="detail-value">{{ performance.employee.employee_id }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Department:</span>
+                    <span class="detail-value">{{ performance.employee.department|default:"-" }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Designation:</span>
+                    <span class="detail-value">{{ performance.employee.designation|default:"-" }}</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="detail-section">
+            <h3>Performance Metrics</h3>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Period</div>
+                    <div class="metric-value">{{ performance.month }}/{{ performance.year }}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Rating</div>
+                    <div class="metric-value">{{ performance.rating }}/10</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Goals Completed</div>
+                    <div class="metric-value">{{ performance.goals_completed }}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Attendance</div>
+                    <div class="metric-value">{{ performance.attendance_percentage }}%</div>
+                </div>
+                <div class="metric-card highlight">
+                    <div class="metric-label">Final Score</div>
+                    <div class="metric-value">{{ performance.calculated_score|floatformat:1 }}</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="detail-section">
+            <h3>Score Breakdown</h3>
+            <div class="breakdown-chart">
+                <canvas id="breakdownChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="detail-section">
+            <h3>Record Information</h3>
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span class="detail-label">Created:</span>
+                    <span class="detail-value">{{ performance.created_at|date:"M d, Y H:i" }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Last Updated:</span>
+                    <span class="detail-value">{{ performance.updated_at|date:"M d, Y H:i" }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('breakdownChart').getContext('2d');
+    
+    // Calculate weighted contributions
+    const rating = {{ performance.rating }} / 10 * 50;
+    const goals = Math.min({{ performance.goals_completed }} / 10 * 30, 30);
+    const attendance = {{ performance.attendance_percentage }} / 100 * 20;
+    
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Rating (50%)', 'Goals (30%)', 'Attendance (20%)'],
+            datasets: [{
+                data: [rating, goals, attendance],
+                backgroundColor: ['#3498db', '#2ecc71', '#f39c12'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.raw.toFixed(1)} points (${context.label})`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

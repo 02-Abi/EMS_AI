@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+
+{% block title %}Update Performance Record{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h1>Update Performance Record</h1>
+    <p class="subtitle" style="color: #7f8c8d; margin-bottom: 20px;">
+        Employee: <strong>{{ performance.employee.get_full_name }}</strong> - 
+        Period: <strong>{{ performance.month }}/{{ performance.year }}</strong>
+    </p>
+    
+    <form method="post" class="standard-form" novalidate>
+        {% csrf_token %}
+        
+        {% if form.non_field_errors %}
+        <div class="alert alert-error">
+            {% for error in form.non_field_errors %}
+            {{ error }}
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        {% for field in form %}
+        <div class="form-group">
+            <label for="{{ field.id_for_label }}">{{ field.label }}:</label>
+            {{ field }}
+            {% if field.errors %}
+            <div class="field-errors">
+                {% for error in field.errors %}
+                <small class="error">{{ error }}</small>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% if field.help_text %}
+            <small class="help-text">{{ field.help_text }}</small>
+            {% endif %}
+        </div>
+        {% endfor %}
+        
+        <!-- Live Score Preview -->
+        <div class="score-preview-container" style="margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 4px; text-align: center;">
+            <h3>Live Score Preview</h3>
+            <div id="liveScore" style="font-size: 2em; font-weight: bold; color: #3498db;">{{ performance.calculated_score|floatformat:1 }}</div>
+            <div style="display: flex; justify-content: space-around; margin-top: 10px; font-size: 0.9em;">
+                <span>Rating: <span id="ratingWeight">0</span>/50</span>
+                <span>Goals: <span id="goalsWeight">0</span>/30</span>
+                <span>Attendance: <span id="attendanceWeight">0</span>/20</span>
+            </div>
+            
+            <!-- Current Values Display -->
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #ccc;">
+                <h4>Current Values</h4>
+                <div style="display: flex; justify-content: space-around; color: #2c3e50;">
+                    <span>Rating: {{ performance.rating }}/10</span>
+                    <span>Goals: {{ performance.goals_completed }}</span>
+                    <span>Attendance: {{ performance.attendance_percentage }}%</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Update Record</button>
+            <a href="{% url 'performance:detail' performance.pk %}" class="btn btn-cancel">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ratingInput = document.getElementById('id_rating');
+    const goalsInput = document.getElementById('id_goals_completed');
+    const attendanceInput = document.getElementById('id_attendance_percentage');
+    
+    function updateScorePreview() {
+        // Get values with defaults
+        const rating = parseFloat(ratingInput?.value) || 0;
+        const goals = parseFloat(goalsInput?.value) || 0;
+        const attendance = parseFloat(attendanceInput?.value) || 0;
+        
+        // Calculate weights
+        const ratingWeight = (rating / 10) * 50;
+        const goalsWeight = Math.min(goals / 10, 1) * 30;
+        const attendanceWeight = (attendance / 100) * 20;
+        
+        const totalScore = ratingWeight + goalsWeight + attendanceWeight;
+        
+        // Update display
+        document.getElementById('liveScore').textContent = totalScore.toFixed(1);
+        document.getElementById('ratingWeight').textContent = ratingWeight.toFixed(1);
+        document.getElementById('goalsWeight').textContent = goalsWeight.toFixed(1);
+        document.getElementById('attendanceWeight').textContent = attendanceWeight.toFixed(1);
+        
+        // Color code based on score
+        const scoreElement = document.getElementById('liveScore');
+        if (totalScore >= 80) {
+            scoreElement.style.color = '#27ae60'; // Green
+        } else if (totalScore >= 60) {
+            scoreElement.style.color = '#f39c12'; // Orange
+        } else {
+            scoreElement.style.color = '#e74c3c'; // Red
+        }
+        
+        // Show warning if score dropped significantly
+        const originalScore = {{ performance.calculated_score|default:0 }};
+        if (totalScore < originalScore - 10) {
+            let warning = document.getElementById('score-warning');
+            if (!warning) {
+                warning = document.createElement('div');
+                warning.id = 'score-warning';
+                warning.className = 'alert alert-warning';
+                warning.style.marginTop = '10px';
+                document.querySelector('.score-preview-container').appendChild(warning);
+            }
+            warning.innerHTML = '⚠️ Warning: New score is significantly lower than current record!';
+        } else {
+            const warning = document.getElementById('score-warning');
+            if (warning) warning.remove();
+        }
+    }
+    
+    // Add event listeners
+    if (ratingInput) ratingInput.addEventListener('input', updateScorePreview);
+    if (goalsInput) goalsInput.addEventListener('input', updateScorePreview);
+    if (attendanceInput) attendanceInput.addEventListener('input', updateScorePreview);
+    
+    // Initial update
+    updateScorePreview();
+    
+    // Form validation
+    document.querySelector('.standard-form').addEventListener('submit', function(e) {
+        const rating = ratingInput?.value;
+        const goals = goalsInput?.value;
+        const attendance = attendanceInput?.value;
+        
+        if (rating && (rating < 1 || rating > 10)) {
+            e.preventDefault();
+            alert('Rating must be between 1 and 10');
+            return;
+        }
+        
+        if (goals && goals < 0) {
+            e.preventDefault();
+            alert('Goals completed cannot be negative');
+            return;
+        }
+        
+        if (attendance && (attendance < 0 || attendance > 100)) {
+            e.preventDefault();
+            alert('Attendance percentage must be between 0 and 100');
+            return;
+        }
+        
+        // Confirm if score is much lower
+        const newScore = parseFloat(document.getElementById('liveScore').textContent);
+        const originalScore = {{ performance.calculated_score|default:0 }};
+        
+        if (newScore < originalScore - 15) {
+            if (!confirm('Warning: The new score is significantly lower than the current record. Are you sure you want to continue?')) {
+                e.preventDefault();
+                return;
+            }
+        }
+    });
+});
+</script>
+
+<style>
+.score-preview-container {
+    border: 2px solid #e0e0e0;
+    transition: all 0.3s ease;
+}
+
+.score-preview-container:hover {
+    border-color: #3498db;
+    box-shadow: 0 2px 8px rgba(52,152,219,0.2);
+}
+
+#liveScore {
+    transition: color 0.3s ease;
+}
+
+.subtitle {
+    font-size: 1.1em;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+    padding: 10px;
+    border-radius: 4px;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Employee{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h1>Create New Employee</h1>
+    
+    <form method="post" class="standard-form" novalidate>
+        {% csrf_token %}
+        
+        {% if form.non_field_errors %}
+        <div class="alert alert-error">
+            {% for error in form.non_field_errors %}
+            {{ error }}
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <div class="form-row">
+            <div class="form-group half">
+                <label for="{{ form.username.id_for_label }}">Username *:</label>
+                {{ form.username }}
+                {% if form.username.errors %}
+                <div class="field-errors">
+                    {% for error in form.username.errors %}
+                    <small class="error">{{ error }}</small>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group half">
+                <label for="{{ form.email.id_for_label }}">Email *:</label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                <div class="field-errors">
+                    {% for error in form.email.errors %}
+                    <small class="error">{{ error }}</small>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group half">
+                <label for="{{ form.first_name.id_for_label }}">First Name *:</label>
+                {{ form.first_name }}
+                {% if form.first_name.errors %}
+                <div class="field-errors">
+                    {% for error in form.first_name.errors %}
+                    <small class="error">{{ error }}</small>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group half">
+                <label for="{{ form.last_name.id_for_label }}">Last Name *:</label>
+                {{ form.last_name }}
+                {% if form.last_name.errors %}
+                <div class="field-errors">
+                    {% for error in form.last_name.errors %}
+                    <small class="error">{{ error }}</small>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group half">
+                <label for="{{ form.password.id_for_label }}">Password:</label>
+                {{ form.password }}
+                {% if form.password.errors %}
+                <div class="field-errors">
+                    {% for error in form.password.errors %}
+                    <small class="error">{{ error }}</small>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <small class="help-text">Leave blank to auto-generate</small>
+            </div>
+            
+            <div class="form-group half">
+                <label for="{{ form.confirm_password.id_for_label }}">Confirm Password:</label>
+                {{ form.confirm_password }}
+                {% if form.confirm_password.errors %}
+                <div class="field-errors">
+                    {% for error in form.confirm_password.errors %}
+                    <small class="error">{{ error }}</small>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group half">
+                <label for="{{ form.department.id_for_label }}">Department:</label>
+                {{ form.department }}
+                {% if form.department.errors %}
+                <div class="field-errors">
+                    {% for error in form.department.errors %}
+                    <small class="error">{{ error }}</small>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group half">
+                <label for="{{ form.designation.id_for_label }}">Designation:</label>
+                {{ form.designation }}
+                {% if form.designation.errors %}
+                <div class="field-errors">
+                    {% for error in form.designation.errors %}
+                    <small class="error">{{ error }}</small>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group half">
+                <label for="{{ form.phone.id_for_label }}">Phone:</label>
+                {{ form.phone }}
+                {% if form.phone.errors %}
+                <div class="field-errors">
+                    {% for error in form.phone.errors %}
+                    <small class="error">{{ error }}</small>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group half">
+                <label for="{{ form.salary.id_for_label }}">Salary:</label>
+                {{ form.salary }}
+                {% if form.salary.errors %}
+                <div class="field-errors">
+                    {% for error in form.salary.errors %}
+                    <small class="error">{{ error }}</small>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group half">
+                <label for="{{ form.role.id_for_label }}">Role:</label>
+                {{ form.role }}
+                {% if form.role.errors %}
+                <div class="field-errors">
+                    {% for error in form.role.errors %}
+                    <small class="error">{{ error }}</small>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group half">
+                <label for="{{ form.employment_status.id_for_label }}">Status:</label>
+                {{ form.employment_status }}
+                {% if form.employment_status.errors %}
+                <div class="field-errors">
+                    {% for error in form.employment_status.errors %}
+                    <small class="error">{{ error }}</small>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="{{ form.date_of_joining.id_for_label }}">Date of Joining:</label>
+            {{ form.date_of_joining }}
+            {% if form.date_of_joining.errors %}
+            <div class="field-errors">
+                {% for error in form.date_of_joining.errors %}
+                <small class="error">{{ error }}</small>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Create Employee</button>
+            <a href="{% url 'employees:list' %}" class="btn btn-cancel">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

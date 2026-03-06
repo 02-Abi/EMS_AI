@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete Performance Record{% endblock %}
+
+{% block content %}
+<div class="confirm-container">
+    <div class="confirm-card">
+        <h1>Confirm Delete</h1>
+        
+        <div class="warning-icon">⚠️</div>
+        
+        <p class="confirm-message">
+            Are you sure you want to delete the performance record for
+        </p>
+        <p class="employee-name"><strong>{{ performance.employee.get_full_name }}</strong></p>
+        <p class="period">Period: {{ performance.month }}/{{ performance.year }}</p>
+        
+        <div class="record-summary">
+            <p><strong>Rating:</strong> {{ performance.rating }}/10</p>
+            <p><strong>Goals Completed:</strong> {{ performance.goals_completed }}</p>
+            <p><strong>Attendance:</strong> {{ performance.attendance_percentage }}%</p>
+            <p><strong>Final Score:</strong> {{ performance.calculated_score|floatformat:1 }}</p>
+        </div>
+        
+        <p class="warning-text">
+            This action cannot be undone. The record will be permanently deleted from the database.
+        </p>
+        
+        <form method="post">
+            {% csrf_token %}
+            <div class="confirm-actions">
+                <button type="submit" class="btn btn-danger">Yes, Delete Record</button>
+                <a href="{% url 'performance:detail' performance.pk %}" class="btn btn-cancel">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

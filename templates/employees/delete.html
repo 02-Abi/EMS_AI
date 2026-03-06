@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete Employee{% endblock %}
+
+{% block content %}
+<div class="confirm-container">
+    <div class="confirm-card">
+        <h1>Confirm Delete</h1>
+        
+        <div class="warning-icon">⚠️</div>
+        
+        <p class="confirm-message">
+            Are you sure you want to delete <strong>{{ employee.get_full_name }}</strong>?
+        </p>
+        
+        <div class="employee-summary">
+            <p><strong>Employee ID:</strong> {{ employee.employee_id }}</p>
+            <p><strong>Email:</strong> {{ employee.email }}</p>
+            <p><strong>Department:</strong> {{ employee.department|default:"-" }}</p>
+            <p><strong>Role:</strong> {{ employee.get_role_display }}</p>
+        </div>
+        
+        <p class="warning-text">
+            This action will soft-delete the employee. They will be excluded from all queries but their data will be preserved in the database.
+        </p>
+        
+        <form method="post">
+            {% csrf_token %}
+            <div class="confirm-actions">
+                <button type="submit" class="btn btn-danger">Yes, Delete Employee</button>
+                <a href="{% url 'employees:detail' employee.pk %}" class="btn btn-cancel">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

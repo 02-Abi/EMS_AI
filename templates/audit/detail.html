@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+
+{% block title %}Audit Log Details{% endblock %}
+
+{% block content %}
+<div class="detail-container">
+    <div class="detail-header">
+        <h1>Audit Log Details</h1>
+        <div class="header-actions">
+            <a href="{% url 'audit:list' %}" class="btn btn-cancel">← Back to Logs</a>
+        </div>
+    </div>
+    
+    <div class="detail-card">
+        <div class="detail-section">
+            <h3>Basic Information</h3>
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span class="detail-label">Log ID:</span>
+                    <span class="detail-value">{{ log.id }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Timestamp:</span>
+                    <span class="detail-value">{{ log.timestamp|date:"Y-m-d H:i:s" }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Action Type:</span>
+                    <span class="detail-value">
+                        <span class="badge action-{{ log.action_type|lower }}">
+                            {{ log.get_action_type_display }}
+                        </span>
+                    </span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">IP Address:</span>
+                    <span class="detail-value">{{ log.ip_address|default:"Not recorded" }}</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="detail-section">
+            <h3>User Information</h3>
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span class="detail-label">User:</span>
+                    <span class="detail-value">
+                        {% if log.user %}
+                        <a href="{% url 'employees:detail' log.user.pk %}">
+                            {{ log.user.get_full_name|default:log.user.username }}
+                        </a>
+                        ({{ log.user.employee_id }})
+                        {% else %}
+                        <em>User deleted or system action</em>
+                        {% endif %}
+                    </span>
+                </div>
+                {% if log.user %}
+                <div class="detail-item">
+                    <span class="detail-label">User Role:</span>
+                    <span class="detail-value">{{ log.user.get_role_display }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Department:</span>
+                    <span class="detail-value">{{ log.user.department|default:"-" }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="detail-section">
+            <h3>Target Information</h3>
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span class="detail-label">Model:</span>
+                    <span class="detail-value">{{ log.target_model }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Record ID:</span>
+                    <span class="detail-value">{{ log.target_id }}</span>
+                </div>
+                {% if log.target_model == 'Employee' or log.target_model == 'User' %}
+                <div class="detail-item">
+                    <span class="detail-label">View Record:</span>
+                    <span class="detail-value">
+                        <a href="{% url 'employees:detail' log.target_id %}" class="btn btn-small">View Employee</a>
+                    </span>
+                </div>
+                {% elif log.target_model == 'Performance' %}
+                <div class="detail-item">
+                    <span class="detail-label">View Record:</span>
+                    <span class="detail-value">
+                        <a href="{% url 'performance:detail' log.target_id %}" class="btn btn-small">View Performance</a>
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="detail-section">
+            <h3>Details</h3>
+            <div class="details-box">
+                {% if log.details %}
+                <pre>{{ log.details }}</pre>
+                {% else %}
+                <p class="no-data">No additional details provided</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="detail-section">
+            <h3>Raw Data</h3>
+            <div class="raw-data">
+                <pre>{{ log|pprint }}</pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.details-box {
+    background-color: var(--light-bg);
+    padding: 20px;
+    border-radius: 4px;
+    font-family: monospace;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.raw-data {
+    background-color: #2c3e50;
+    color: #ecf0f1;
+    padding: 20px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.9em;
+    overflow-x: auto;
+}
+
+.btn-small {
+    padding: 5px 10px;
+    font-size: 0.9em;
+    background-color: var(--secondary-color);
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+}
+
+.btn-small:hover {
+    background-color: #2980b9;
+}
+</style>
+{% endblock %}

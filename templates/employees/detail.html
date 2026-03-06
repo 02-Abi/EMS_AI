@@ -1,0 +1,1003 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% load ml_tags %}
+
+{% block title %}Employee Details{% endblock %}
+
+{% block content %}
+<div class="detail-container">
+    <!-- ===== HEADER SECTION ===== -->
+    <div class="detail-header">
+        <h1>
+            <span class="header-icon">👤</span>
+            Employee Details
+        </h1>
+        <div class="header-actions">
+            <!-- EDIT BUTTON - Conditional access -->
+            {% if user.role == 'SUPERADMIN' %}
+                <a href="{% url 'employees:update' employee.pk %}" class="btn btn-primary">
+                    <span class="btn-icon">✏️</span> Edit
+                </a>
+            {% elif user.role == 'HR' and employee.role != 'SUPERADMIN' %}
+                <a href="{% url 'employees:update' employee.pk %}" class="btn btn-primary">
+                    <span class="btn-icon">✏️</span> Edit
+                </a>
+            {% elif user.role == 'MANAGER' and employee.department == user.department and employee.role != 'SUPERADMIN' and employee.role != 'HR' %}
+                <a href="{% url 'employees:update' employee.pk %}" class="btn btn-primary">
+                    <span class="btn-icon">✏️</span> Edit
+                </a>
+            {% endif %}
+            
+            <!-- DELETE BUTTON - Conditional access -->
+            {% if user.role == 'SUPERADMIN' and employee.username != user.username %}
+                <button onclick="confirmDelete({{ employee.pk }}, '{{ employee.get_full_name|escapejs }}')" class="btn btn-danger">
+                    <span class="btn-icon">🗑️</span> Delete
+                </button>
+            {% elif user.role == 'HR' and employee.role != 'SUPERADMIN' and employee.username != user.username %}
+                <button onclick="confirmDelete({{ employee.pk }}, '{{ employee.get_full_name|escapejs }}')" class="btn btn-danger">
+                    <span class="btn-icon">🗑️</span> Delete
+                </button>
+            {% endif %}
+            
+            <!-- BACK button for everyone -->
+            <a href="{% url 'employees:list' %}" class="btn btn-cancel">
+                <span class="btn-icon">←</span> Back to List
+            </a>
+        </div>
+    </div>
+    
+    <!-- ===== MAIN DETAIL CARD ===== -->
+    <div class="detail-card">
+        
+        <!-- ===== PROFILE HEADER ===== -->
+        <div class="profile-header-section">
+            <div class="profile-avatar">
+                {{ employee.first_name|first|default:employee.username|first|upper }}
+            </div>
+            <div class="profile-title">
+                <h2>{{ employee.get_full_name|default:employee.username }}</h2>
+                <div class="profile-badges">
+                    <span class="badge role-{{ employee.role|lower }}">{{ employee.get_role_display }}</span>
+                    <span class="badge status-{{ employee.employment_status|lower }}">{{ employee.get_employment_status_display }}</span>
+                </div>
+                <p class="employee-id-display">Employee ID: <strong>{{ employee.employee_id }}</strong></p>
+            </div>
+        </div>
+        
+        <!-- ===== PERSONAL INFORMATION SECTION ===== -->
+        <div class="detail-section">
+            <div class="section-header">
+                <span class="section-icon">📋</span>
+                <h3>Personal Information</h3>
+            </div>
+            
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span class="detail-label">Username</span>
+                    <span class="detail-value">@{{ employee.username }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Full Name</span>
+                    <span class="detail-value">
+                        {% if employee.get_full_name %}
+                            <strong>{{ employee.get_full_name }}</strong>
+                        {% else %}
+                            <span class="text-muted">— Not provided —</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Email Address</span>
+                    <span class="detail-value">
+                        <a href="mailto:{{ employee.email }}">{{ employee.email }}</a>
+                    </span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Phone Number</span>
+                    <span class="detail-value">
+                        {% if employee.phone %}
+                            <a href="tel:{{ employee.phone }}">{{ employee.phone }}</a>
+                        {% else %}
+                            <span class="text-muted">— Not provided —</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ===== EMPLOYMENT INFORMATION SECTION ===== -->
+        <div class="detail-section">
+            <div class="section-header">
+                <span class="section-icon">💼</span>
+                <h3>Employment Information</h3>
+            </div>
+            
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span class="detail-label">Department</span>
+                    <span class="detail-value">
+                        {% if employee.department %}
+                            <span class="badge badge-department">{{ employee.department }}</span>
+                        {% else %}
+                            <span class="text-muted">— Not assigned —</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Designation</span>
+                    <span class="detail-value">
+                        {% if employee.designation %}
+                            {{ employee.designation }}
+                        {% else %}
+                            <span class="text-muted">— Not assigned —</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Date of Joining</span>
+                    <span class="detail-value">
+                        {% if employee.date_of_joining %}
+                            {{ employee.date_of_joining|date:"F d, Y" }}
+                            <span class="tenure">({{ employee.date_of_joining|timesince }})</span>
+                        {% else %}
+                            <span class="text-muted">— Not recorded —</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Salary</span>
+                    <span class="detail-value">
+                        {% if employee.salary %}
+                            <span class="salary">${{ employee.salary|floatformat:2|intcomma }}</span>
+                        {% else %}
+                            <span class="text-muted">— Not disclosed —</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Reports To</span>
+                    <span class="detail-value">
+                        {% if employee.department %}
+                            {% with manager=employee.department|add:" Manager" %}
+                                {{ manager }}
+                            {% endwith %}
+                        {% else %}
+                            <span class="text-muted">— Not assigned —</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ===== ML INSIGHTS SECTION ===== -->
+        <div class="detail-section">
+            <div class="section-header">
+                <span class="section-icon">🤖</span>
+                <h3>AI Performance Prediction</h3>
+            </div>
+            
+            {% with prediction=employee|get_ml_prediction %}
+                {% if prediction %}
+                <div class="ml-card">
+                    <div class="prediction-row">
+                        <span class="prediction-label">Next Month Score:</span>
+                        <span class="prediction-value">{{ prediction.next_month_score|floatformat:1 }}</span>
+                        <span class="confidence">({{ prediction.confidence|floatformat:1 }}% confidence)</span>
+                    </div>
+                    <div class="progress-bar" style="margin-top: 10px;">
+                        <div class="progress-fill" style="width: {{ prediction.confidence }}%; height: 6px; background: #3498db;"></div>
+                    </div>
+                    <p class="trend">Trend: {{ prediction.get_trend_display }}</p>
+                </div>
+                {% else %}
+                <p class="text-muted">No prediction available yet. <a href="{% url 'ml_engine:train' %}">Train models</a> to generate.</p>
+                {% endif %}
+            {% endwith %}
+            
+            {% with risk=employee|get_churn_risk %}
+                {% if risk %}
+                <div class="risk-card" style="margin-top: 15px;">
+                    <h4>Retention Risk: 
+                        <span class="badge risk-{{ risk.risk_level|lower }}">{{ risk.get_risk_level_display }}</span>
+                    </h4>
+                    <p>Risk Score: {{ risk.risk_score }}%</p>
+                    {% if risk.recommended_action %}
+                    <p><strong>Recommendation:</strong> {{ risk.recommended_action }}</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            {% endwith %}
+        </div>
+        
+        <!-- ===== RECENT PERFORMANCE SECTION ===== -->
+        <div class="detail-section">
+            <div class="section-header">
+                <span class="section-icon">📊</span>
+                <h3>Recent Performance History</h3>
+                {% if employee.performances.exists %}
+                <a href="{% url 'performance:list' %}?employee={{ employee.id }}" class="btn-view-all">
+                    View All <span class="btn-icon">→</span>
+                </a>
+                {% endif %}
+            </div>
+            
+            {% if employee.performances.exists %}
+            <div class="table-responsive">
+                <table class="performance-table">
+                    <thead>
+                        <tr>
+                            <th>Period</th>
+                            <th>Rating</th>
+                            <th>Goals</th>
+                            <th>Attendance</th>
+                            <th>Score</th>
+                            <th>Performance</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for perf in employee.performances.all|slice:":5" %}
+                        <tr>
+                            <td>
+                                <span class="period">
+                                    <strong>{{ perf.month }}/{{ perf.year }}</strong>
+                                </span>
+                            </td>
+                            <td>
+                                <div class="rating-display">
+                                    <span class="rating-value">{{ perf.rating }}</span>/10
+                                    <div class="rating-bar">
+                                        <div class="rating-fill" style="width: {{ perf.rating|floatformat:0 }}0%"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center">{{ perf.goals_completed }}</td>
+                            <td class="text-center">{{ perf.attendance_percentage }}%</td>
+                            <td>
+                                <span class="score-badge 
+                                    {% if perf.calculated_score >= 80 %}score-high
+                                    {% elif perf.calculated_score >= 60 %}score-medium
+                                    {% else %}score-low{% endif %}">
+                                    {{ perf.calculated_score|floatformat:1 }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if perf.calculated_score >= 80 %}
+                                    <span class="perf-tag excellent">Excellent</span>
+                                {% elif perf.calculated_score >= 60 %}
+                                    <span class="perf-tag good">Good</span>
+                                {% elif perf.calculated_score >= 40 %}
+                                    <span class="perf-tag average">Average</span>
+                                {% else %}
+                                    <span class="perf-tag needs-improvement">Needs Improvement</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'performance:detail' perf.pk %}" class="btn-icon" title="View Details">👁️</a>
+                                {% if user.role == 'HR' or user.role == 'SUPERADMIN' or user.role == 'MANAGER' %}
+                                <a href="{% url 'performance:update' perf.pk %}" class="btn-icon" title="Edit">✏️</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Performance Summary Cards -->
+            <div class="performance-summary">
+                <div class="summary-card">
+                    <div class="summary-icon">📈</div>
+                    <div class="summary-content">
+                        <div class="summary-label">Average Score</div>
+                        <div class="summary-value">
+                            {{ employee.performances.all|dictsort:"calculated_score"|last|default:"N/A" }}
+                        </div>
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-icon">📊</div>
+                    <div class="summary-content">
+                        <div class="summary-label">Total Reviews</div>
+                        <div class="summary-value">{{ employee.performances.count }}</div>
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-icon">📅</div>
+                    <div class="summary-content">
+                        <div class="summary-label">Last Review</div>
+                        <div class="summary-value">
+                            {% with last=employee.performances.last %}
+                                {% if last %}
+                                    {{ last.month }}/{{ last.year }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            {% endwith %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">📭</div>
+                <h4>No Performance Records</h4>
+                <p>This employee doesn't have any performance records yet.</p>
+                {% if user.role == 'HR' or user.role == 'SUPERADMIN' or user.role == 'MANAGER' %}
+                <a href="{% url 'performance:create' %}?employee={{ employee.id }}" class="btn btn-primary">
+                    ➕ Add First Performance Record
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- ===== SYSTEM INFORMATION SECTION ===== -->
+        <div class="detail-section">
+            <div class="section-header">
+                <span class="section-icon">⚙️</span>
+                <h3>System Information</h3>
+            </div>
+            
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span class="detail-label">Last Login</span>
+                    <span class="detail-value">
+                        {% if employee.last_login %}
+                            {{ employee.last_login|date:"F d, Y H:i" }}
+                        {% else %}
+                            <span class="text-muted">Never logged in</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Account Created</span>
+                    <span class="detail-value">{{ employee.date_joined|date:"F d, Y" }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Account Status</span>
+                    <span class="detail-value">
+                        {% if employee.is_active %}
+                            <span class="badge badge-success">Active</span>
+                        {% else %}
+                            <span class="badge badge-danger">Inactive</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== DELETE CONFIRMATION MODAL ===== -->
+<div id="deleteModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span class="modal-icon">⚠️</span>
+            <h3>Confirm Delete</h3>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete <strong id="deleteEmployeeName"></strong>?</p>
+            <p class="warning-message">This action will soft-delete the employee. They can be restored later.</p>
+        </div>
+        <div class="modal-footer">
+            <form id="deleteForm" method="post" action="{% url 'employees:delete' employee.pk %}">
+                {% csrf_token %}
+                <button type="button" class="btn btn-cancel" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn btn-danger">Yes, Delete Employee</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+/* ===== MODERN STYLES ===== */
+:root {
+    --primary: #3498db;
+    --success: #27ae60;
+    --warning: #f39c12;
+    --danger: #e74c3c;
+    --dark: #2c3e50;
+    --light: #ecf0f1;
+    --gray: #7f8c8d;
+}
+
+/* Container Styles */
+.detail-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Header Styles */
+.detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.detail-header h1 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    color: var(--dark);
+    font-size: 1.8em;
+}
+
+.header-icon {
+    font-size: 1.5em;
+}
+
+.header-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* Profile Header */
+.profile-header-section {
+    display: flex;
+    align-items: center;
+    gap: 25px;
+    padding: 25px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.profile-avatar {
+    width: 80px;
+    height: 80px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5em;
+    font-weight: bold;
+    border: 3px solid white;
+}
+
+.profile-title h2 {
+    margin: 0 0 10px 0;
+    font-size: 1.8em;
+}
+
+.profile-badges {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.employee-id-display {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 0.95em;
+}
+
+/* Card Styles */
+.detail-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.detail-section {
+    padding: 25px;
+    border-bottom: 1px solid var(--light);
+}
+
+.detail-section:last-child {
+    border-bottom: none;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.section-header h3 {
+    margin: 0;
+    font-size: 1.2em;
+    color: var(--dark);
+    flex: 1;
+}
+
+.section-icon {
+    font-size: 1.2em;
+}
+
+/* Grid Layout */
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    transition: transform 0.2s;
+}
+
+.detail-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+}
+
+.detail-label {
+    font-size: 0.85em;
+    color: var(--gray);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.detail-value {
+    font-size: 1.1em;
+    color: var(--dark);
+    font-weight: 500;
+    word-break: break-word;
+}
+
+/* Badge Styles */
+.badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    font-weight: 500;
+    text-align: center;
+}
+
+.badge-department {
+    background: var(--primary);
+    color: white;
+}
+
+.role-superadmin { background: #8e44ad; color: white; }
+.role-hr { background: #2980b9; color: white; }
+.role-manager { background: var(--warning); color: white; }
+.role-employee { background: var(--success); color: white; }
+
+.status-active { background: var(--success); color: white; }
+.status-inactive { background: var(--gray); color: white; }
+.status-terminated { background: var(--danger); color: white; }
+
+.badge-success { background: var(--success); color: white; }
+.badge-danger { background: var(--danger); color: white; }
+
+/* Risk Badge Colors */
+.risk-high { background: #e74c3c; color: white; }
+.risk-medium { background: #f39c12; color: white; }
+.risk-low { background: #27ae60; color: white; }
+
+/* ML Card Styles */
+.ml-card {
+    background: #f8f9fa;
+    border-left: 4px solid #3498db;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+.prediction-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.prediction-label {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.prediction-value {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #3498db;
+}
+
+.confidence {
+    color: #7f8c8d;
+    font-size: 0.9em;
+}
+
+.trend {
+    margin: 10px 0 0;
+    color: #2c3e50;
+}
+
+.risk-card {
+    background: #f8f9fa;
+    border-left: 4px solid #e74c3c;
+    padding: 15px;
+    border-radius: 4px;
+}
+
+/* Progress Bar (reused) */
+.progress-bar {
+    width: 100%;
+    height: 6px;
+    background: #ecf0f1;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: #3498db;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+/* Tenure/Timesince */
+.tenure {
+    font-size: 0.85em;
+    color: var(--gray);
+    margin-left: 5px;
+}
+
+.salary {
+    font-weight: bold;
+    color: var(--success);
+}
+
+/* Performance Table */
+.performance-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+}
+
+.performance-table th {
+    background: var(--dark);
+    color: white;
+    padding: 12px;
+    text-align: left;
+    font-weight: 500;
+}
+
+.performance-table td {
+    padding: 12px;
+    border-bottom: 1px solid var(--light);
+}
+
+.performance-table tbody tr:hover {
+    background: #f5f5f5;
+}
+
+.rating-display {
+    min-width: 80px;
+}
+
+.rating-bar {
+    width: 100%;
+    height: 4px;
+    background: var(--light);
+    border-radius: 2px;
+    margin-top: 3px;
+    overflow: hidden;
+}
+
+.rating-fill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 2px;
+}
+
+.score-badge {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-weight: bold;
+    min-width: 50px;
+    text-align: center;
+}
+
+.score-high {
+    background: var(--success);
+    color: white;
+}
+
+.score-medium {
+    background: var(--warning);
+    color: white;
+}
+
+.score-low {
+    background: var(--danger);
+    color: white;
+}
+
+.perf-tag {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.85em;
+}
+
+.perf-tag.excellent {
+    background: var(--success);
+    color: white;
+}
+
+.perf-tag.good {
+    background: var(--primary);
+    color: white;
+}
+
+.perf-tag.average {
+    background: var(--warning);
+    color: white;
+}
+
+.perf-tag.needs-improvement {
+    background: var(--danger);
+    color: white;
+}
+
+/* Performance Summary */
+.performance-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.summary-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 10px;
+    color: white;
+}
+
+.summary-card:nth-child(2) {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.summary-card:nth-child(3) {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.summary-icon {
+    font-size: 2em;
+    opacity: 0.8;
+}
+
+.summary-content {
+    flex: 1;
+}
+
+.summary-label {
+    font-size: 0.85em;
+    opacity: 0.9;
+    margin-bottom: 3px;
+}
+
+.summary-value {
+    font-size: 1.3em;
+    font-weight: bold;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+.empty-icon {
+    font-size: 3em;
+    opacity: 0.5;
+    margin-bottom: 15px;
+}
+
+.empty-state h4 {
+    color: var(--dark);
+    margin-bottom: 10px;
+}
+
+.empty-state p {
+    color: var(--gray);
+    margin-bottom: 20px;
+}
+
+/* Button Styles */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.95em;
+    font-weight: 500;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #2980b9;
+    transform: translateY(-2px);
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #c0392b;
+    transform: translateY(-2px);
+}
+
+.btn-cancel {
+    background: var(--light);
+    color: var(--dark);
+}
+
+.btn-cancel:hover {
+    background: #bdc3c7;
+    transform: translateY(-2px);
+}
+
+.btn-view-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    background: var(--light);
+    color: var(--dark);
+    text-decoration: none;
+    border-radius: 20px;
+    font-size: 0.9em;
+    transition: all 0.3s;
+}
+
+.btn-view-all:hover {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-icon {
+    font-size: 1.1em;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    max-width: 400px;
+    width: 90%;
+    overflow: hidden;
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-bottom: 1px solid var(--light);
+}
+
+.modal-icon {
+    font-size: 1.5em;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: var(--dark);
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.warning-message {
+    color: var(--danger);
+    font-size: 0.9em;
+    margin-top: 10px;
+}
+
+.modal-footer {
+    padding: 20px;
+    background: #f8f9fa;
+    border-top: 1px solid var(--light);
+}
+
+.modal-footer form {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .detail-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .header-actions {
+        width: 100%;
+    }
+    
+    .btn {
+        flex: 1;
+        justify-content: center;
+    }
+    
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .performance-table {
+        display: block;
+        overflow-x: auto;
+    }
+    
+    .profile-header-section {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .performance-summary {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<script>
+function confirmDelete(employeeId, employeeName) {
+    document.getElementById('deleteEmployeeName').textContent = employeeName;
+    document.getElementById('deleteModal').style.display = 'flex';
+}
+
+function closeModal() {
+    document.getElementById('deleteModal').style.display = 'none';
+}
+
+window.onclick = function(event) {
+    const modal = document.getElementById('deleteModal');
+    if (event.target == modal) {
+        modal.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}

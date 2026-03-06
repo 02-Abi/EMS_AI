@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <title>EMS - {% block title %}Dashboard{% endblock %}</title>
+    
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <!-- Static Files -->
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    
+    <!-- Additional Style to Ensure Logout Button Matches -->
+    <style>
+        /* Ensure logout button has exact same styling as nav links */
+        .sidebar-nav .logout-form {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+        }
+        
+        .sidebar-nav .logout-btn {
+            width: 100%;
+            text-align: left;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font: inherit;
+            color: inherit;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s;
+            border-left: 4px solid transparent;
+        }
+        
+        .sidebar-nav .logout-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-left: 4px solid #3498db;
+            transform: translateX(5px);
+        }
+        
+        .sidebar-nav .logout-btn:active {
+            transform: translateX(2px);
+        }
+        
+        .sidebar-nav .logout-btn .nav-icon {
+            font-size: 1.2em;
+            min-width: 24px;
+        }
+        
+        .sidebar-nav .logout-btn .nav-text {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar - Only for authenticated users -->
+        {% if user.is_authenticated %}
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>EMS</h2>
+                <div class="user-info">
+                    <p class="user-name">{{ user.get_full_name|default:user.username }}</p>
+                    <p class="role-badge role-{{ user.role|lower }}">{{ user.get_role_display }}</p>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <ul>
+                    <li>
+                        <a href="{% url 'dashboard' %}" 
+                           class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                            <span class="nav-icon">📊</span>
+                            <span class="nav-text">Dashboard</span>
+                        </a>
+                    </li>
+                    
+                    <li>
+                        <a href="{% url 'employees:list' %}" 
+                           class="nav-link {% if 'employees' in request.path %}active{% endif %}">
+                            <span class="nav-icon">👥</span>
+                            <span class="nav-text">Employees</span>
+                        </a>
+                    </li>
+                    
+                    <li>
+                        <a href="{% url 'performance:list' %}" 
+                           class="nav-link {% if 'performance' in request.path %}active{% endif %}">
+                            <span class="nav-icon">📈</span>
+                            <span class="nav-text">Performance</span>
+                        </a>
+                    </li>
+                    
+                    {% if user.role == 'SUPERADMIN' %}
+                    <li>
+                        <a href="{% url 'audit:list' %}" 
+                           class="nav-link {% if 'audit' in request.path %}active{% endif %}">
+                            <span class="nav-icon">📋</span>
+                            <span class="nav-text">Audit Logs</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    <li>
+                        <a href="{% url 'accounts:profile' %}" 
+                           class="nav-link {% if 'profile' in request.path %}active{% endif %}">
+                            <span class="nav-icon">👤</span>
+                            <span class="nav-text">Profile</span>
+                        </a>
+                    </li>
+                    
+                    <li>
+                        <form method="post" action="{% url 'accounts:logout' %}" class="logout-form">
+                            {% csrf_token %}
+                            <button type="submit" class="logout-btn">
+                                <span class="nav-icon">🚪</span>
+                                <span class="nav-text">Logout</span>
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+        {% endif %}
+        
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Messages/Alerts -->
+            {% if messages %}
+            <div class="messages-container">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible" role="alert">
+                    <span class="alert-message">{{ message }}</span>
+                    <button type="button" class="alert-close" onclick="this.parentElement.remove()">&times;</button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <!-- Page Content -->
+            {% block content %}
+            {% endblock %}
+        </main>
+    </div>
+    
+    <!-- JavaScript Files -->
+    <script src="{% static 'js/main.js' %}"></script>
+    
+    <!-- Session Security Script -->
+    <script>
+    (function() {
+        'use strict';
+        
+        // ==================== SESSION MANAGEMENT ====================
+        
+        /**
+         * Handle manual logout via form submission
+         */
+        const logoutForms = document.querySelectorAll('.logout-form');
+        logoutForms.forEach(form => {
+            form.addEventListener('submit', function() {
+                sessionStorage.setItem('logout_flag', 'true');
+            });
+        });
+        
+        /**
+         * Check session status on page load
+         */
+        async function checkSession() {
+            try {
+                const response = await fetch('/accounts/check-session/');
+                const data = await response.json();
+                
+                if (!data.valid && !window.location.pathname.includes('/accounts/login/')) {
+                    window.location.href = '/accounts/login/';
+                }
+            } catch (error) {
+                console.error('Session check failed:', error);
+            }
+        }
+        
+        // Check session on page load
+        if (!window.location.pathname.includes('/accounts/login/')) {
+            checkSession();
+        }
+        
+        // Check session periodically (every 5 minutes)
+        setInterval(checkSession, 300000);
+        
+        // ==================== PAGE CACHE PREVENTION ====================
+        
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted || sessionStorage.getItem('logout_flag') === 'true') {
+                sessionStorage.removeItem('logout_flag');
+                window.location.reload(true);
+            }
+        });
+        
+        // Push state to prevent back button
+        if (!window.location.pathname.includes('/accounts/login/')) {
+            history.pushState(null, null, location.href);
+            window.onpopstate = function() {
+                history.go(1);
+            };
+        }
+        
+        // ==================== INACTIVITY TIMEOUT ====================
+        
+        let inactivityTimer;
+        const INACTIVITY_LIMIT = 30 * 60 * 1000; // 30 minutes
+        
+        function resetInactivityTimer() {
+            clearTimeout(inactivityTimer);
+            
+            if (!window.location.pathname.includes('/accounts/login/')) {
+                inactivityTimer = setTimeout(() => {
+                    console.log('Session timeout due to inactivity');
+                    
+                    const form = document.querySelector('.logout-form');
+                    if (form) {
+                        sessionStorage.setItem('logout_flag', 'true');
+                        form.submit();
+                    }
+                }, INACTIVITY_LIMIT);
+            }
+        }
+        
+        // Track user activity
+        const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+        activityEvents.forEach(event => {
+            document.addEventListener(event, resetInactivityTimer);
+        });
+        
+        // Initialize timer
+        resetInactivityTimer();
+        
+        console.log('🔒 Session security initialized');
+    })();
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
