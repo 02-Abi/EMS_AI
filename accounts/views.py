@@ -61,8 +61,8 @@ def login_view(request):
             request.session.set_expiry(0)
             messages.success(request, f'Welcome, {user.get_full_name() or user.username}!')
             return redirect('dashboard')
-        else:
-            messages.error(request, 'Invalid username or password.')
+        # If form is invalid, we simply render the page with the form errors.
+        # No global message is added – the form errors will be displayed in the template.
     else:
         form = CustomAuthenticationForm()
     
