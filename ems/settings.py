@@ -175,7 +175,7 @@ CSRF_COOKIE_SAMESITE = 'Lax'
 
 # Prevent back button after logout
 SECURE_REFERRER_POLICY = 'same-origin'
-
+STATIC_URL = '/static/'
 
 # Email configuration for real sending (Gmail example)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
