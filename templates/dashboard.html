@@ -14,7 +14,7 @@
         <p class="welcome-message">Welcome back, {{ user.get_full_name|default:user.username }}!</p>
     </div>
     
-    <!-- Stats Cards - Light Colors -->
+    <!-- Stats Cards - Light Colors (visible to everyone) -->
     <div class="stats-grid">
         <div class="stat-card total">
             <div class="stat-icon">👥</div>
@@ -62,7 +62,8 @@
         </div>
     </div>
     
-    <!-- ===== ML INSIGHTS WIDGETS ===== -->
+    <!-- ===== ML INSIGHTS WIDGETS ===== (Only for HR/SUPERADMIN) -->
+    {% if user.role == 'HR' or user.role == 'SUPERADMIN' %}
     <div class="ml-widgets">
         <div class="widget-card">
             <div class="widget-icon">🔮</div>
@@ -89,8 +90,10 @@
             </div>
         </div>
     </div>
+    {% endif %}
     
-    <!-- Charts Row -->
+    <!-- Charts Row (Only for HR/SUPERADMIN) -->
+    {% if user.role == 'HR' or user.role == 'SUPERADMIN' %}
     <div class="charts-row">
         <div class="chart-container">
             <div class="chart-header">
@@ -128,8 +131,10 @@
             {% endif %}
         </div>
     </div>
+    {% endif %}
     
-    <!-- Leaderboard Section -->
+    <!-- Leaderboard Section (Only for HR/SUPERADMIN) -->
+    {% if user.role == 'HR' or user.role == 'SUPERADMIN' %}
     <div class="leaderboard-section">
         <div class="leaderboard-header">
             <h3>
@@ -213,8 +218,9 @@
             </table>
         </div>
     </div>
+    {% endif %}
     
-    <!-- Quick Actions (for HR/Admin) -->
+    <!-- Quick Actions (for HR/Admin) – already conditional -->
     {% if user.role == 'HR' or user.role == 'SUPERADMIN' %}
     <div class="quick-actions">
         <h3>Quick Actions</h3>
@@ -785,128 +791,88 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Department Distribution Chart
-    {% if department_labels %}
-    const deptCtx = document.getElementById('deptChart').getContext('2d');
-    new Chart(deptCtx, {
-        type: 'pie',
-        data: {
-            labels: {{ department_labels|safe }},
-            datasets: [{
-                data: {{ department_counts|safe }},
-                backgroundColor: [
-                    '#e8f0fe', '#e6f4ea', '#fef7e0', '#fce8e6', '#f3e8fd',
-                    '#e8f0fe', '#e6f4ea', '#fef7e0', '#fce8e6', '#f3e8fd'
-                ],
-                borderColor: '#ffffff',
-                borderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        padding: 20,
-                        font: {
-                            size: 12,
-                            family: "'Segoe UI', sans-serif"
-                        },
-                        color: '#2c3e50'
-                    }
+    // Department Distribution Chart (only for HR/SUPERADMIN, canvas exists)
+    {% if user.role == 'HR' or user.role == 'SUPERADMIN' %}
+        {% if department_labels %}
+        const deptCtx = document.getElementById('deptChart');
+        if (deptCtx) {
+            new Chart(deptCtx.getContext('2d'), {
+                type: 'pie',
+                data: {
+                    labels: {{ department_labels|safe }},
+                    datasets: [{
+                        data: {{ department_counts|safe }},
+                        backgroundColor: [
+                            '#e8f0fe', '#e6f4ea', '#fef7e0', '#fce8e6', '#f3e8fd',
+                            '#e8f0fe', '#e6f4ea', '#fef7e0', '#fce8e6', '#f3e8fd'
+                        ],
+                        borderColor: '#ffffff',
+                        borderWidth: 2
+                    }]
                 },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const label = context.label || '';
-                            const value = context.raw || 0;
-                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                            const percentage = ((value / total) * 100).toFixed(1);
-                            return `${label}: ${value} employees (${percentage}%)`;
-                        }
-                    },
-                    backgroundColor: 'white',
-                    titleColor: '#2c3e50',
-                    bodyColor: '#2c3e50',
-                    borderColor: '#ecf0f1',
-                    borderWidth: 1
-                }
-            }
-        }
-    });
-    {% endif %}
-    
-    // Performance Trend Chart
-    {% if performance_labels %}
-    const perfCtx = document.getElementById('performanceChart').getContext('2d');
-    new Chart(perfCtx, {
-        type: 'line',
-        data: {
-            labels: {{ performance_labels|safe }},
-            datasets: [{
-                label: 'Average Performance Score',
-                data: {{ performance_data|safe }},
-                borderColor: '#3498db',
-                backgroundColor: 'rgba(52, 152, 219, 0.05)',
-                borderWidth: 2,
-                tension: 0.3,
-                fill: true,
-                pointBackgroundColor: '#3498db',
-                pointBorderColor: 'white',
-                pointBorderWidth: 2,
-                pointRadius: 4,
-                pointHoverRadius: 6
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 100,
-                    grid: {
-                        color: 'rgba(0,0,0,0.05)'
-                    },
-                    title: {
-                        display: true,
-                        text: 'Score',
-                        color: '#7f8c8d'
-                    },
-                    ticks: {
-                        color: '#7f8c8d'
-                    }
-                },
-                x: {
-                    grid: {
-                        display: false
-                    },
-                    ticks: {
-                        color: '#7f8c8d'
-                    }
-                }
-            },
-            plugins: {
-                legend: {
-                    display: false
-                },
-                tooltip: {
-                    backgroundColor: 'white',
-                    titleColor: '#2c3e50',
-                    bodyColor: '#2c3e50',
-                    borderColor: '#ecf0f1',
-                    borderWidth: 1,
-                    callbacks: {
-                        label: function(context) {
-                            return `Average Score: ${context.raw.toFixed(1)}`;
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return `${label}: ${value} employees (${percentage}%)`;
+                                }
+                            }
                         }
                     }
                 }
-            }
+            });
         }
-    });
+        {% endif %}
+
+        {% if performance_labels %}
+        const perfCtx = document.getElementById('performanceChart');
+        if (perfCtx) {
+            new Chart(perfCtx.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: {{ performance_labels|safe }},
+                    datasets: [{
+                        label: 'Average Performance Score',
+                        data: {{ performance_data|safe }},
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.05)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: true,
+                        pointBackgroundColor: '#3498db',
+                        pointBorderColor: 'white',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, max: 100, grid: { color: 'rgba(0,0,0,0.05)' } },
+                        x: { grid: { display: false } }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => `Average Score: ${ctx.raw.toFixed(1)}`
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        {% endif %}
     {% endif %}
 });
 </script>

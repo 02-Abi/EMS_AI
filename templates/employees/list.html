@@ -11,46 +11,47 @@
         <a href="{% url 'employees:create' %}" class="btn btn-primary">➕ Add Employee</a>
         {% endif %}
     </div>
-    
-    <!-- Search and Filter Form -->
+
+    <!-- Uncomment the next block for debugging role strings -->
+    <!--
+    <div style="background: #ffd; border: 2px solid red; padding: 15px; margin-bottom: 20px;">
+        <p><strong>Logged in user:</strong> {{ user.username }} – role = "{{ user.role }}"</p>
+        <hr>
+        {% for emp in page_obj %}
+            <p><strong>{{ emp.username }}</strong> – role = "{{ emp.role }}"</p>
+        {% endfor %}
+    </div>
+    -->
+
+    <!-- Search and Filter Form (unchanged) -->
     <div class="filters-section">
         <form method="get" class="filter-form">
             <div class="search-box">
                 <input type="text" name="query" placeholder="Search by name, email or ID..." value="{{ search_form.query.value|default:'' }}" class="search-input">
                 <button type="submit" class="btn btn-search">🔍</button>
             </div>
-            
             <div class="filter-controls">
                 <select name="department" class="filter-select">
                     {% for value, label in search_form.fields.department.choices %}
-                    <option value="{{ value }}" {% if search_form.department.value == value %}selected{% endif %}>
-                        {{ label }}
-                    </option>
+                    <option value="{{ value }}" {% if search_form.department.value == value %}selected{% endif %}>{{ label }}</option>
                     {% endfor %}
                 </select>
-                
                 <select name="role" class="filter-select">
                     {% for value, label in search_form.fields.role.choices %}
-                    <option value="{{ value }}" {% if search_form.role.value == value %}selected{% endif %}>
-                        {{ label }}
-                    </option>
+                    <option value="{{ value }}" {% if search_form.role.value == value %}selected{% endif %}>{{ label }}</option>
                     {% endfor %}
                 </select>
-                
                 <select name="status" class="filter-select">
                     {% for value, label in search_form.fields.status.choices %}
-                    <option value="{{ value }}" {% if search_form.status.value == value %}selected{% endif %}>
-                        {{ label }}
-                    </option>
+                    <option value="{{ value }}" {% if search_form.status.value == value %}selected{% endif %}>{{ label }}</option>
                     {% endfor %}
                 </select>
-                
                 <button type="submit" class="btn btn-filter">Apply Filters</button>
                 <a href="{% url 'employees:list' %}" class="btn btn-clear">Clear</a>
             </div>
         </form>
     </div>
-    
+
     <!-- Employees Table -->
     <div class="table-responsive">
         <table class="data-table">
@@ -65,54 +66,57 @@
                     <th>Status</th>
                     <th>ML Risk</th>
                     <th>Actions</th>
-                </tr>
-            </thead>
+                </thead>
             <tbody>
                 {% for employee in page_obj %}
                 <tr>
-                    <td><span class="employee-id-badge">{{ employee.employee_id }}</span></td>
+                    <td class="employee-id"><span class="employee-id-badge">{{ employee.employee_id }}</span></td>
                     <td><strong>{{ employee.get_full_name|default:employee.username }}</strong></td>
                     <td>{{ employee.email }}</td>
                     <td>{{ employee.department|default:"-" }}</td>
                     <td>{{ employee.designation|default:"-" }}</td>
-                    <td>
+                    <td class="role-cell">
                         <span class="badge role-{{ employee.role|lower }}">
                             {{ employee.get_role_display }}
                         </span>
                     </td>
-                    <td>
+                    <td class="status-cell">
                         <span class="badge status-{{ employee.employment_status|lower }}">
                             {{ employee.get_employment_status_display }}
                         </span>
                     </td>
-                    <td>
+                    <td class="risk-cell">
                         {% with risk=employee|get_churn_risk %}
                             {% if risk %}
-                                <span class="badge risk-{{ risk.risk_level|lower }}">
-                                    {{ risk.get_risk_level_display }}
-                                </span>
+                                <span class="badge risk-{{ risk.risk_level|lower }}">{{ risk.get_risk_level_display }}</span>
                             {% else %}
                                 <span class="badge risk-low">No Data</span>
                             {% endif %}
                         {% endwith %}
                     </td>
                     <td class="actions">
-                        <!-- View button for everyone -->
+                        <!-- View button (always visible) -->
                         <a href="{% url 'employees:detail' employee.pk %}" class="btn-icon" title="View">👁️</a>
-                        
-                        <!-- Edit button - conditional -->
+
+                        <!-- ========== EDIT BUTTON ========== -->
                         {% if user.role == 'SUPERADMIN' %}
                             <a href="{% url 'employees:update' employee.pk %}" class="btn-icon" title="Edit">✏️</a>
                         {% elif user.role == 'HR' and employee.role != 'SUPERADMIN' %}
                             <a href="{% url 'employees:update' employee.pk %}" class="btn-icon" title="Edit">✏️</a>
-                        {% elif user.role == 'MANAGER' and employee.department == user.department and employee.role != 'SUPERADMIN' and employee.role != 'HR' %}
+                        {% elif user.role == 'Human Resources' and employee.role != 'SUPERADMIN' %}
+                            {# fallback if the stored role is the display string #}
+                            <a href="{% url 'employees:update' employee.pk %}" class="btn-icon" title="Edit">✏️</a>
+                        {% elif user.role == 'MANAGER' and employee.department == user.department and employee.role not in 'SUPERADMIN,HR,Human Resources' %}
                             <a href="{% url 'employees:update' employee.pk %}" class="btn-icon" title="Edit">✏️</a>
                         {% endif %}
-                        
-                        <!-- Delete button - conditional -->
+
+                        <!-- ========== DELETE BUTTON ========== -->
                         {% if user.role == 'SUPERADMIN' and employee.username != user.username %}
                             <button class="btn-icon delete-btn" onclick="confirmDelete({{ employee.pk }}, '{{ employee.get_full_name|escapejs }}')" title="Delete">🗑️</button>
                         {% elif user.role == 'HR' and employee.role != 'SUPERADMIN' and employee.username != user.username %}
+                            <button class="btn-icon delete-btn" onclick="confirmDelete({{ employee.pk }}, '{{ employee.get_full_name|escapejs }}')" title="Delete">🗑️</button>
+                        {% elif user.role == 'Human Resources' and employee.role != 'SUPERADMIN' and employee.username != user.username %}
+                            {# fallback for display string #}
                             <button class="btn-icon delete-btn" onclick="confirmDelete({{ employee.pk }}, '{{ employee.get_full_name|escapejs }}')" title="Delete">🗑️</button>
                         {% endif %}
                     </td>
@@ -133,17 +137,17 @@
             </tbody>
         </table>
     </div>
-    
-    <!-- Pagination -->
+
+    <!-- Pagination (unchanged) -->
     {% if page_obj.has_other_pages %}
     <div class="pagination">
         {% if page_obj.has_previous %}
         <a href="?page=1{% if request.GET.query %}&query={{ request.GET.query }}{% endif %}{% if request.GET.department %}&department={{ request.GET.department }}{% endif %}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" class="page-link">&laquo; First</a>
         <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.query %}&query={{ request.GET.query }}{% endif %}{% if request.GET.department %}&department={{ request.GET.department }}{% endif %}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" class="page-link">Previous</a>
         {% endif %}
-        
+
         <span class="current-page">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-        
+
         {% if page_obj.has_next %}
         <a href="?page={{ page_obj.next_page_number }}{% if request.GET.query %}&query={{ request.GET.query }}{% endif %}{% if request.GET.department %}&department={{ request.GET.department }}{% endif %}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" class="page-link">Next</a>
         <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.query %}&query={{ request.GET.query }}{% endif %}{% if request.GET.department %}&department={{ request.GET.department }}{% endif %}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" class="page-link">Last &raquo;</a>
@@ -174,7 +178,7 @@
 </div>
 
 <style>
-/* Table Styles */
+/* ===== TABLE STYLES (keep all your existing styles) ===== */
 .data-table {
     width: 100%;
     border-collapse: collapse;
@@ -183,12 +187,10 @@
     overflow: hidden;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
-
 .data-table thead {
     background-color: #2c3e50;
     color: white;
 }
-
 .data-table th {
     padding: 12px;
     text-align: left;
@@ -197,16 +199,13 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
-
 .data-table td {
     padding: 12px;
     border-bottom: 1px solid #ecf0f1;
 }
-
 .data-table tbody tr:hover {
     background-color: #f8f9fa;
 }
-
 .employee-id-badge {
     font-family: monospace;
     background-color: #f0f0f0;
@@ -214,8 +213,6 @@
     border-radius: 4px;
     font-size: 0.9em;
 }
-
-/* Badge Styles */
 .badge {
     display: inline-block;
     padding: 4px 8px;
@@ -223,26 +220,20 @@
     font-size: 0.85em;
     font-weight: 500;
 }
-
 .role-superadmin { background-color: #8e44ad; color: white; }
 .role-hr { background-color: #2980b9; color: white; }
 .role-manager { background-color: #f39c12; color: white; }
 .role-employee { background-color: #27ae60; color: white; }
-
 .status-active { background-color: #27ae60; color: white; }
 .status-inactive { background-color: #f39c12; color: white; }
 .status-terminated { background-color: #e74c3c; color: white; }
-
-/* Risk Badges */
 .risk-high { background-color: #e74c3c; color: white; }
 .risk-medium { background-color: #f39c12; color: white; }
 .risk-low { background-color: #27ae60; color: white; }
 
-/* Actions */
 .actions {
     white-space: nowrap;
 }
-
 .btn-icon {
     display: inline-block;
     padding: 5px 8px;
@@ -255,27 +246,21 @@
     cursor: pointer;
     font-size: 1.1em;
 }
-
 .btn-icon:hover {
     background-color: #ecf0f1;
 }
-
-/* Empty State */
 .empty-state {
     text-align: center;
     padding: 40px;
     background-color: #f9f9f9;
     border-radius: 8px;
 }
-
 .empty-icon {
     font-size: 3em;
     display: block;
     margin-bottom: 15px;
     opacity: 0.5;
 }
-
-/* Pagination */
 .pagination {
     display: flex;
     justify-content: center;
@@ -284,7 +269,6 @@
     margin-top: 20px;
     padding: 20px;
 }
-
 .page-link {
     padding: 8px 12px;
     background: white;
@@ -294,21 +278,17 @@
     color: #2c3e50;
     transition: all 0.3s;
 }
-
 .page-link:hover {
     background: #3498db;
     color: white;
     border-color: #3498db;
 }
-
 .current-page {
     padding: 8px 12px;
     background: #2c3e50;
     color: white;
     border-radius: 4px;
 }
-
-/* Modal Styles */
 .modal {
     display: none;
     position: fixed;
@@ -321,14 +301,12 @@
     align-items: center;
     z-index: 1000;
 }
-
 .modal-content {
     background: white;
     border-radius: 8px;
     max-width: 400px;
     width: 90%;
 }
-
 .modal-header {
     padding: 20px;
     border-bottom: 1px solid #ecf0f1;
@@ -336,11 +314,9 @@
     align-items: center;
     gap: 10px;
 }
-
 .modal-body {
     padding: 20px;
 }
-
 .modal-footer {
     padding: 20px;
     border-top: 1px solid #ecf0f1;
@@ -348,7 +324,6 @@
     justify-content: flex-end;
     gap: 10px;
 }
-
 .warning {
     color: #e74c3c;
     font-size: 0.9em;
@@ -374,3 +349,4 @@ window.onclick = function(event) {
 }
 </script>
 {% endblock %}
+

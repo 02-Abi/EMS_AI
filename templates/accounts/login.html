@@ -7,7 +7,7 @@
     <div class="auth-card">
         <h1>Login to EMS</h1>
         
-        <form method="post" class="auth-form">
+        <form method="post" class="auth-form" id="loginForm">
             {% csrf_token %}
             
             {% if form.non_field_errors %}
@@ -32,7 +32,10 @@
             
             <div class="form-group">
                 <label for="{{ form.password.id_for_label }}">Password:</label>
-                {{ form.password }}
+                <div class="password-wrapper">
+                    {{ form.password }}
+                    <button type="button" class="toggle-password" data-target="{{ form.password.id_for_label }}">👁️</button>
+                </div>
                 {% if form.password.errors %}
                 <div class="field-errors">
                     {% for error in form.password.errors %}
@@ -40,14 +43,71 @@
                     {% endfor %}
                 </div>
                 {% endif %}
+                <div class="text-right mt-2">
+                    <a href="{% url 'accounts:password_reset' %}">Forgot password?</a>
+                </div>
             </div>
             
-            <button type="submit" class="btn btn-primary btn-block">Login</button>
+            <button type="submit" class="btn btn-primary btn-block" id="loginBtn">Login</button>
         </form>
         
         <div class="auth-footer">
-            <p>Don't have an account? <a href="{% url 'accounts:register' %}">Register here</a></p>
+            <p>New employee? <a href="{% url 'accounts:set_password' %}">Set your password here</a></p>
         </div>
     </div>
 </div>
+
+<style>
+.password-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.password-wrapper input {
+    flex: 1;
+    padding-right: 40px;
+}
+.toggle-password {
+    position: absolute;
+    right: 10px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2em;
+    opacity: 0.6;
+}
+.toggle-password:hover {
+    opacity: 1;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle password visibility
+    document.querySelectorAll('.toggle-password').forEach(button => {
+        button.addEventListener('click', function() {
+            const targetId = this.dataset.target;
+            const input = document.getElementById(targetId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                this.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                this.textContent = '👁️';
+            }
+        });
+    });
+    
+    // Client-side validation (basic)
+    const form = document.getElementById('loginForm');
+    form.addEventListener('submit', function(e) {
+        const username = form.querySelector('[name="username"]').value.trim();
+        const password = form.querySelector('[name="password"]').value;
+        if (!username || !password) {
+            e.preventDefault();
+            alert('Please enter both username and password.');
+        }
+    });
+});
+</script>
 {% endblock %}

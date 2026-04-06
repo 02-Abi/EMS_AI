@@ -5,10 +5,11 @@
 {% block content %}
 <div class="form-container">
     <h1>Create New Employee</h1>
-    
+    <p class="help-text">The system will generate a random password. You will see it after saving.</p>
+
     <form method="post" class="standard-form" novalidate>
         {% csrf_token %}
-        
+
         {% if form.non_field_errors %}
         <div class="alert alert-error">
             {% for error in form.non_field_errors %}
@@ -16,7 +17,7 @@
             {% endfor %}
         </div>
         {% endif %}
-        
+
         <div class="form-row">
             <div class="form-group half">
                 <label for="{{ form.username.id_for_label }}">Username *:</label>
@@ -29,7 +30,7 @@
                 </div>
                 {% endif %}
             </div>
-            
+
             <div class="form-group half">
                 <label for="{{ form.email.id_for_label }}">Email *:</label>
                 {{ form.email }}
@@ -42,7 +43,7 @@
                 {% endif %}
             </div>
         </div>
-        
+
         <div class="form-row">
             <div class="form-group half">
                 <label for="{{ form.first_name.id_for_label }}">First Name *:</label>
@@ -55,7 +56,7 @@
                 </div>
                 {% endif %}
             </div>
-            
+
             <div class="form-group half">
                 <label for="{{ form.last_name.id_for_label }}">Last Name *:</label>
                 {{ form.last_name }}
@@ -68,34 +69,9 @@
                 {% endif %}
             </div>
         </div>
-        
-        <div class="form-row">
-            <div class="form-group half">
-                <label for="{{ form.password.id_for_label }}">Password:</label>
-                {{ form.password }}
-                {% if form.password.errors %}
-                <div class="field-errors">
-                    {% for error in form.password.errors %}
-                    <small class="error">{{ error }}</small>
-                    {% endfor %}
-                </div>
-                {% endif %}
-                <small class="help-text">Leave blank to auto-generate</small>
-            </div>
-            
-            <div class="form-group half">
-                <label for="{{ form.confirm_password.id_for_label }}">Confirm Password:</label>
-                {{ form.confirm_password }}
-                {% if form.confirm_password.errors %}
-                <div class="field-errors">
-                    {% for error in form.confirm_password.errors %}
-                    <small class="error">{{ error }}</small>
-                    {% endfor %}
-                </div>
-                {% endif %}
-            </div>
-        </div>
-        
+
+        <!-- Password fields removed – auto-generated in backend -->
+
         <div class="form-row">
             <div class="form-group half">
                 <label for="{{ form.department.id_for_label }}">Department:</label>
@@ -108,7 +84,7 @@
                 </div>
                 {% endif %}
             </div>
-            
+
             <div class="form-group half">
                 <label for="{{ form.designation.id_for_label }}">Designation:</label>
                 {{ form.designation }}
@@ -121,7 +97,7 @@
                 {% endif %}
             </div>
         </div>
-        
+
         <div class="form-row">
             <div class="form-group half">
                 <label for="{{ form.phone.id_for_label }}">Phone:</label>
@@ -134,7 +110,7 @@
                 </div>
                 {% endif %}
             </div>
-            
+
             <div class="form-group half">
                 <label for="{{ form.salary.id_for_label }}">Salary:</label>
                 {{ form.salary }}
@@ -147,7 +123,7 @@
                 {% endif %}
             </div>
         </div>
-        
+
         <div class="form-row">
             <div class="form-group half">
                 <label for="{{ form.role.id_for_label }}">Role:</label>
@@ -160,7 +136,7 @@
                 </div>
                 {% endif %}
             </div>
-            
+
             <div class="form-group half">
                 <label for="{{ form.employment_status.id_for_label }}">Status:</label>
                 {{ form.employment_status }}
@@ -173,7 +149,7 @@
                 {% endif %}
             </div>
         </div>
-        
+
         <div class="form-group">
             <label for="{{ form.date_of_joining.id_for_label }}">Date of Joining:</label>
             {{ form.date_of_joining }}
@@ -185,7 +161,7 @@
             </div>
             {% endif %}
         </div>
-        
+
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Create Employee</button>
             <a href="{% url 'employees:list' %}" class="btn btn-cancel">Cancel</a>
